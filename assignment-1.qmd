@@ -295,12 +295,19 @@ end
 model = gev_model(y) # <1>
 
 # Optimize
-map_res = maximum_likelihood(model, Optim.NelderMead(), initial_params=[0.0, log(1.0), 0.0], maxiters=10_000) # Did not change the variable since this is a huge work so used the MLE as variable
+mle_res = maximum_likelihood(model, Optim.NelderMead(), initial_params=[0.0, log(1.0), 0.0], maxiters=10_000) # Did not change the variable since this is a huge work so used the MLE as variable
+mle_res.optim_result
+
+map_res = maximum_a_posteriori(model, NelderMead(), initial_params=[0.0, log(1.0), 0.0], maxiters=10_000, reltol = 1e-6)
 map_res.optim_result
 ```
 
 ```{julia}
-# Extract MLE parameters
+# Extract MLE and MAP parameters
+μ_mle   = mle_res.values[:μ]
+σ_mle   = exp(mle_res.values[:log_σ])
+ξ_mle   = mle_res.values[:ξ]
+
 μ_map   = map_res.values[:μ]
 σ_map   = exp(map_res.values[:log_σ])
 ξ_map   = map_res.values[:ξ]
@@ -330,14 +337,15 @@ Check the `MLE` from Turning.jl and results from `Extreme.jl`.
 
 ```{julia}
 #| output: false
+turing_mle_dist = GeneralizedExtremeValue(μ_mle, σ_mle, ξ_mle)
 turing_map_dist = GeneralizedExtremeValue(μ_map, σ_map, ξ_map)
 
 # Side-by-side parameter comparison 
 params_compare = DataFrame(
-    Method = ["Extremes MLE", "Turing MLE optimized"],
-     μ = [round(μ_ext, digits=3), round(μ_map, digits=3)],
-     σ = [round(σ_ext, digits=3), round(σ_map, digits=3)],
-     ξ = [round(ξ_ext, digits=3), round(ξ_map, digits=3)],
+    Method = ["Extremes MLE", "Turing MLE optimized", "MAP optimized"],
+     μ = [round(μ_ext, digits=3), round(μ_mle, digits=3), round(μ_map, digits=3)],
+     σ = [round(σ_ext, digits=3), round(σ_mle, digits=3), round(σ_map, digits=3)],
+     ξ = [round(ξ_ext, digits=3), round(ξ_mle, digits=3), round(ξ_map, digits=3)],
 )
 
 ```
